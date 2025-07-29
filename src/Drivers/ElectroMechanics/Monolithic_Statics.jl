@@ -15,6 +15,7 @@ function execute(problem::ElectroMechProblem{:monolithic,:statics}; kwargs...)
     is_P_F = _get_kwarg(:is_P_F, kwargs, false)
     csv_bool = _get_kwarg(:csv_bool, kwargs, false)
     csv_funct_ = _get_kwarg(:csv_funct_, kwargs, nothing)
+    f₀ = _get_kwarg(:f₀, kwargs, nothing)
     simdir_ = datadir("sims", pname)
     csvdir_ = datadir("csv", pname)
     setupfolder(simdir_)
@@ -48,7 +49,7 @@ function execute(problem::ElectroMechProblem{:monolithic,:statics}; kwargs...)
     fe_spaces = get_FE_spaces(problem, model, order, dirichletbc)
 
     # WeakForms
-    res((u, φ), (v, vφ)) = residual_EM(ctype, (u, φ), (v, vφ), (∂Ψu, ∂Ψφ), dΩ) # Add Neumann BC 
+    res((u, φ), (v, vφ)) = residual_EM(ctype, (u, φ), (v, vφ), (∂Ψu, ∂Ψφ), f₀, dΩ) # Add Neumann BC 
     jac((u, φ), (du, dφ), (v, vφ)) = jacobian_EM(ctype, (u, φ), (du, dφ), (v, vφ), (∂Ψuu, ∂Ψφu, ∂Ψφφ), dΩ)
 
     @timeit pname begin
