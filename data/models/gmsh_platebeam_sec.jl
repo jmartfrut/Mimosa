@@ -137,14 +137,15 @@ nl=9; # X element size: 20 for 4s and 8 for 10S
 nw=8; # Y element size
 nt=2; # Z element size
 
-fract = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+# fract = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1]
+fract = [1.0]
 # fract = [0.25,0.25,0.25]
 
-model_name = "PlateBeame10S_BC"
+model_name = "PlateBeame1S_BC"
 
 lc = 1.0; # characteristic length for meshing
 function generateBeam(L,W,T,nl,nw,nt,lc,fract,model_name)
-    append!(fract,1 - sum(fract))
+    # append!(fract,1 - sum(fract)) #used to add a final section
     gmsh.model.add(model_name)
     n_sec = length(fract)
     st_pt = [0 0 0]

@@ -105,23 +105,26 @@ function physicalG(L,D)
             end
         end
         Z_avg = sum(Z_list)/length(Z_list)
+        println("Look! = $((1-1e-3)*L*(-1))  or $(L*(1+1e-3)*(-1))")
+        println("Look! = $((1-1e-3)*L*(-1)>Z_avg)  or $(Z_avg<L*(1+1e-3)*(-1))")
+        println("Z_avg = $Z_avg")
         if Z_avg==0.0
-            gmsh.model.addPhysicalGroup(0, point_list, -1,"bottom_surf_$i")  
-            gmsh.model.addPhysicalGroup(1, lines_list, -1, "bottom_surf_$i")  
-            gmsh.model.addPhysicalGroup(2, [surface[2]], -1, "bottom_surf_$i")
-            push!(bottom_surf,"bottom_surf_$i")
+            gmsh.model.addPhysicalGroup(0, point_list, -1,"mid_surf_$i")  
+            gmsh.model.addPhysicalGroup(1, lines_list, -1, "mid_surf_$i")  
+            gmsh.model.addPhysicalGroup(2, [surface[2]], -1, "mid_surf_$i")
+            push!(bottom_surf,"mid_surf_$i")
             i = i + 1
         elseif (1-1e-3)*L<Z_avg && Z_avg<L*(1+1e-3)
-            gmsh.model.addPhysicalGroup(0, point_list, -1,"mid_surf_$j")
-            gmsh.model.addPhysicalGroup(1, lines_list, -1, "mid_surf_$j")  
-            gmsh.model.addPhysicalGroup(2, [surface[2]], -1, "mid_surf_$j")
-            push!(mid_surf,"mid_surf_$j")
+            gmsh.model.addPhysicalGroup(0, point_list, -1,"top_surf_$j")
+            gmsh.model.addPhysicalGroup(1, lines_list, -1, "top_surf_$j")  
+            gmsh.model.addPhysicalGroup(2, [surface[2]], -1, "top_surf_$j")
+            push!(mid_surf,"top_surf_$j")
             j = j + 1
-        elseif (1-1e-3)*L*(-1)<Z_avg && Z_avg<L*(1+1e-3)*(-1)
-            gmsh.model.addPhysicalGroup(0, point_list, -1,"top_surf_$k")  
-            gmsh.model.addPhysicalGroup(1, lines_list, -1, "top_surf_$k")  
-            gmsh.model.addPhysicalGroup(2, [surface[2]], -1, "top_surf_$k")
-            push!(top_surf,"top_surf_$k")
+        elseif (1-1e-3)*L*(-1)>Z_avg && Z_avg>L*(1+1e-3)*(-1)
+            gmsh.model.addPhysicalGroup(0, point_list, -1,"bottom_surf_$k")  
+            gmsh.model.addPhysicalGroup(1, lines_list, -1, "bottom_surf_$k")  
+            gmsh.model.addPhysicalGroup(2, [surface[2]], -1, "bottom_surf_$k")
+            push!(top_surf,"bottom_surf_$k")
             k = k + 1
         else
             gmsh.model.addPhysicalGroup(0, point_list, -1,"surf_$l")  
@@ -129,6 +132,7 @@ function physicalG(L,D)
             gmsh.model.addPhysicalGroup(2, [surface[2]], -1, "surf_$l")
             l = l + 1
         end
+        println(k)
     end
     
     vol = gmsh.model.getEntities(3)

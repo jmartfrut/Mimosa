@@ -127,7 +127,7 @@ function main()
     gmsh.initialize()
 
     L=100e-3;      # beam length
-    D=2e-3;       # beam width
+    D=1.5e-3;       # beam width
     d=1e-3;     # beam thickness
     ct_pt = [0.0,0.0,0.0]
     n_sec_t = 4
@@ -145,7 +145,7 @@ function main()
     
     L_conf = [0.25,0.25,0.25,0.25]
     L_ = length(L_conf)
-    model_name = "TubeBeam_SecT_$n_sec_t-SecL_$L_"
+    model_name = "TubeBeam_V2_SecT_$n_sec_t-SecL_$L_"
     
     global Sec = 1
     for i in L_conf
