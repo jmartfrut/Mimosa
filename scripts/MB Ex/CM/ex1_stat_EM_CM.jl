@@ -107,7 +107,7 @@ function get_parameters(sw, pot)
 
   init_sol_bool, U_ap, X_ap = false, nothing, nothing
 
-  csv_bool = false
+  csv_bool = true
   csv_funct_ = Surf_
 
   return @dict problemName ptype soltype regtype diffstrat meshfile consmodel dirichletbc order solveropt is_vtk is_P_F init_sol_bool U_ap X_ap csv_bool csv_funct_
