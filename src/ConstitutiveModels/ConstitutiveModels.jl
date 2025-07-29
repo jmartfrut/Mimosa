@@ -16,6 +16,7 @@ export NeoHookean3DNearlyIncomp
 export MoneyRivlin3D
 export LinearElasticity3D
 export Yeoh
+export Carroll
 export IdealDielectric
 export ThermalModel
 export ElectroMech
@@ -88,6 +89,14 @@ end
   C₁::Float64
   C₂::Float64
   C₃::Float64
+  κ::Float64
+  ρ::Float64=0.0
+end
+
+@kwdef struct Carroll <: Mechano
+  a::Float64
+  b::Float64
+  c::Float64
   κ::Float64
   ρ::Float64=0.0
 end
@@ -234,7 +243,7 @@ end
 
 function (obj::NeoHookean3D)(::DerivativeStrategy{:analytic})
   F, H, J = _getKinematic(obj)
-  Ψ(∇u) = obj.μ / 2 * tr((F(∇u))' * F(∇u)) - obj.μ * log(J(F(∇u))) + (obj.λ / 2) * (J(F(∇u)) - 1)^2 - 3.0 * (obj.μ / 2.0)
+  Ψ(∇u) = obj.μ / 2 * tr((F(∇u))' * F(∇u)) - obj.μ * logreg(J(F(∇u))) + (obj.λ / 2) * (J(F(∇u)) - 1)^2 - 3.0 * (obj.μ / 2.0)
   ∂Ψ_∂J(∇u) = -obj.μ / J(F(∇u)) + obj.λ * (J(F(∇u)) - 1)
   ∂Ψu(∇u) = obj.μ * F(∇u) + ∂Ψ_∂J(∇u) * H(F(∇u))
   # I_ = TensorValue(Matrix(1.0I, 9, 9))
@@ -255,15 +264,15 @@ function (obj::Yeoh)(::DerivativeStrategy{:autodiff})
   return (Ψ, ∂Ψu, ∂Ψuu)
 end
 
-function (obj::Yeoh)(::DerivativeStrategy{:analytic})
+function (obj::Carroll)(::DerivativeStrategy{:autodiff})
   F, H, J = _getKinematic(obj)
-  Ψ(∇u) = obj.μ / 2 * tr((F(∇u))' * F(∇u)) - obj.μ * log(J(F(∇u))) + (obj.λ / 2) * (J(F(∇u)) - 1)^2 - 3.0 * (obj.μ / 2.0)
-  ∂Ψ_∂J(∇u) = -obj.μ / J(F(∇u)) + obj.λ * (J(F(∇u)) - 1)
-  ∂Ψu(∇u) = obj.μ * F(∇u) + ∂Ψ_∂J(∇u) * H(F(∇u))
-  # I_ = TensorValue(Matrix(1.0I, 9, 9))
-   I_=I9()
-  ∂Ψ2_∂J2(∇u) = obj.μ / (J(F(∇u))^2) + obj.λ
-  ∂Ψuu(∇u) = obj.μ * I_ + ∂Ψ2_∂J2(∇u) * (H(F(∇u)) ⊗ H(F(∇u))) + ∂Ψ_∂J(∇u) * ×ᵢ⁴(F(∇u))
+  𝐼(∇u) = real((complex(J(F(∇u))^2))^(-1/3)) * tr((F(∇u))' * F(∇u))
+  𝐼𝐼(∇u) = real((complex(J(F(∇u))^2))^(1/3)) * tr((H(F(∇u)))' * H(F(∇u)))
+  Ψ(∇u) = obj.a * (𝐼(∇u)) + obj.b * (𝐼(∇u))^4 + obj.c * (𝐼𝐼(∇u))^(1/2) + (obj.κ / 2) * (J(F(∇u)) - 1)^2
+  ∂Ψ_∂∇u(∇u) = ForwardDiff.gradient(∇u -> Ψ(∇u), get_array(∇u))
+  ∂2Ψ_∂2∇u(∇u) = ForwardDiff.jacobian(∇u -> ∂Ψ_∂∇u(∇u), get_array(∇u))
+  ∂Ψu(∇u) = TensorValue(∂Ψ_∂∇u(∇u))
+  ∂Ψuu(∇u) = TensorValue(∂2Ψ_∂2∇u(∇u))
   return (Ψ, ∂Ψu, ∂Ψuu)
 end
 
