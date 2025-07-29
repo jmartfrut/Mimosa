@@ -12,15 +12,15 @@ function get_FE_spaces(::ElectroMechProblem{:monolithic},
     reffeφ = ReferenceFE(lagrangian, Float64, order)
 
     # Test FE Spaces
-    println(bconds.BoundaryCondition[1].tags)
-    println(bconds.BoundaryCondition[1].masks)
+    # println(bconds.BoundaryCondition[1].tags)
+    # println(bconds.BoundaryCondition[1].masks)
     Vu = TestFESpace(model, reffeu, dirichlet_tags=bconds.BoundaryCondition[1].tags,dirichlet_masks=bconds.BoundaryCondition[1].masks, conformity=:H1)
     # Vu = TestFESpace(model, reffeu, dirichlet_tags=["point_zy","point_z","fixedup_1"],dirichlet_masks=[(true,true,true),(true,true,false),(true,false,false)], conformity=:H1)
-    println(Vu)
+    # println(Vu)
     Vφ = TestFESpace(model, reffeφ, dirichlet_tags=bconds.BoundaryCondition[2].tags, conformity=:H1)
 
     # Trial FE Spaces
-    println(map(f -> f(1.0), bconds.BoundaryCondition[1].values))
+    # println(map(f -> f(1.0), bconds.BoundaryCondition[1].values))
     Uu = TrialFESpace(Vu,  map(f -> f(1.0), bconds.BoundaryCondition[1].values)) #[VectorValue(0.0, 0.0, 0.0),VectorValue(0.0, 0.0, 0.0),VectorValue(0.0, 0.0, 0.0)]) # map(f -> f(1.0), bconds.BoundaryCondition[1].values))
     Uφ = TrialFESpace(Vφ, map(f -> f(1.0), bconds.BoundaryCondition[2].values))
 
