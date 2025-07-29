@@ -22,7 +22,8 @@ function get_parameters()
   dir_u_tags = ["fixedup"]
   dir_u_values = [[0.0, 0.0, 0.0]]
   dir_u_timesteps = [evolu]
-  Du = DirichletBC(dir_u_tags, dir_u_values, dir_u_timesteps)
+  masks = [(true,true,true)]
+  Du = DirichletBC(dir_u_tags, dir_u_values, dir_u_timesteps,masks)
 
   evolφ(t) = min(t / 5.0, 1.0)
   dir_φ_tags = ["midsuf", "topsuf"]

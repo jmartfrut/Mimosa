@@ -9,6 +9,8 @@ function get_parameters()
   soltype = "monolithic"
   regtype = "statics"
   meshfile = "ex2_mesh.msh"
+  diffstrat = "autodiff"
+
 
 
   # modmec = MoneyRivlin3D(λ=10.0, μ1=1.0, μ2=0.0)
@@ -22,7 +24,8 @@ function get_parameters()
   dir_u_tags = ["fixedup"]
   dir_u_values = [[0.0, 0.0, 0.0]]
   dir_u_timesteps = [evolu]
-  Du = DirichletBC(dir_u_tags, dir_u_values, dir_u_timesteps)
+  masks = [(true,true,true)]
+  Du = DirichletBC(dir_u_tags, dir_u_values, dir_u_timesteps,masks)
 
   evolφ(Λ) = Λ
   dir_φ_tags = ["midsuf", "topsuf"]
@@ -48,8 +51,15 @@ function get_parameters()
 
   # Postprocessing
   is_vtk = true
+  is_P_F = false
 
-  return @dict problemName ptype soltype regtype meshfile consmodel dirichletbc order solveropt is_vtk
+  init_sol_bool, U_ap, X_ap = false, nothing, nothing
+
+  csv_bool = false
+  csv_funct_ = nothing
+
+  return @dict problemName ptype soltype diffstrat regtype meshfile consmodel dirichletbc order solveropt is_vtk is_P_F init_sol_bool U_ap X_ap csv_bool csv_funct_
+
 end
 
 main(; get_parameters()...)
