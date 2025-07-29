@@ -138,8 +138,10 @@ function Increment_Solver(x0,step,nsteps,𝜑ᵇ,f,model, Ω, dΩ,cache,x_list,b
     norm_res = 1
     count = 0
     x0_copy = copy(x0)
-    println("==============================================")
-    println("step = $step of $nsteps material parameter = $f")
+    if trace
+        println("\n==============================================")
+    end
+    println("Material parameter = $f :: step = $step of $nsteps ")
     while norm_res>1e-12
         if count>15 || norm_res>1e2
             bisect += 1
@@ -153,8 +155,10 @@ function Increment_Solver(x0,step,nsteps,𝜑ᵇ,f,model, Ω, dΩ,cache,x_list,b
         copyto!(x0,x0+Δx)
         norm_res = maximum(abs.(b))
         count += 1
+        a1 = log10(norm_res)
+        a2 = log10(norm(Δx))
         if trace
-            println("\riter = $count norm_res = $norm_res norm_Δx = $(norm(Δx))  size_K_T = $(size(K_T)) norm_x0 = $(norm(x0))")
+            print("\riter = $count norm_res = $(round(10.0^(a1-trunc(a1)),digits = 3))e$(Int64(trunc(a1))) norm_Δx = $(round(10.0^(a2-trunc(a2)),digits = 3))e$(Int64(trunc(a2)))")
         end
         if norm_res<1e-12
             push!(x_list,copy(x0))
@@ -164,13 +168,15 @@ function Increment_Solver(x0,step,nsteps,𝜑ᵇ,f,model, Ω, dΩ,cache,x_list,b
     return x0, cache, x_list, b_list
 end
 
-function Incremental_Solver(f)
+function Incremental_Solver(f,trace=true)
     model, Ω, dΩ = nothing, nothing, nothing
     lock(gmsh_lock) do
         model, Ω, dΩ =  get_trian_and_measure()
     end
     nsteps = 300
     𝜑ᵇ = 5000.0
+    dirichletbc = get_DirichletBC(0.0)
+    fe_spaces = get_fe_spaces(model,dirichletbc)
     xu = zeros(Float64, num_free_dofs(fe_spaces.Vu))
     xφ = zeros(Float64, num_free_dofs(fe_spaces.Vφ))
     x0 = vcat(xu, xφ)
@@ -179,7 +185,7 @@ function Incremental_Solver(f)
     cache = nothing
     bisect = 0
     for step in 1:nsteps
-        x0, cache, x_list, b_list = run(x0,step,nsteps,𝜑ᵇ,f,model, Ω, dΩ,cache,x_list,b_list,bisect)
+        x0, cache, x_list, b_list = Increment_Solver(x0,step,nsteps,𝜑ᵇ,f,model, Ω, dΩ,cache,x_list,b_list,bisect,trace)
     end
     return x_list, b_list
 end
@@ -192,7 +198,7 @@ function collect_data()
     @threads for i in 1:lastindex(f_list)
         f = f_list[i]
         println("f = $f")
-        x_list, b_list = runs(f)
+        x_list, b_list = Incremental_Solver(f,false)
         df_x = DataFrame(x_list, :auto)
         df_b = DataFrame(b_list, :auto)
         folder = "scripts/MB Ex 3/Full Order Solutions/V1/"
@@ -201,6 +207,55 @@ function collect_data()
         CSV.write(folder*"MaterialModel$f/b_.csv",df_b)
         CSV.write(folder*"MaterialModel$f/R_nl_.csv",df_R_nl)
     end
+end
+
+#endregion
+
+##
+
+##
+
+#region Read Full Order training data
+
+𝜑_dofs = 7245
+u_dofs = 36147
+
+function Training_Set_Read(v)
+    folder = "scripts/MB Ex 3/Full Order Solutions/V$v/"
+    D_x = []
+    D_T= []
+    f_list = [0.9,1.0,1.1]
+    for i in 1:3
+        f = f_list[i]
+        file_name = folder*"MaterialModel$f/x_.csv"
+        _X = CSV.File(file_name) |> Tables.matrix
+        push!(D_x,_X)
+        file_name = folder*"MaterialModel$f/b_.csv"
+        _T = CSV.File(file_name) |> Tables.matrix
+        push!(D_T,_T)
+    end
+
+    D_x = reduce(hcat,D_x)
+    D_T = reduce(hcat,D_T)
+    return D_x, D_T
+end
+
+#endregion
+
+##
+
+##
+
+#region POD Matrices and analysis
+
+function Jacobi_SVDs_POD_DEIM(D_x)
+
+    D_x_u = D_x[[1:u_dofs...],:]
+    D_x_𝜑 = D_x[[u_dofs+1:u_dofs+𝜑_dofs...],:]
+    U_x_u, σ_i_x_u, V_x_u = jsvd!(D_x_u)
+    U_x_𝜑, σ_i_x_𝜑, V_x_𝜑 = jsvd!(D_x_𝜑)
+
+    return U_x_u, σ_i_x_u, V_x_u, U_x_𝜑, σ_i_x_𝜑, V_x_𝜑
 end
 
 #endregion
