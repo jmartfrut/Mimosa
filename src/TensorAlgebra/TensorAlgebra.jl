@@ -28,6 +28,7 @@ export Outer_14_23
 export Contraction_IP_JPKL
 export Contraction_IP_PJKL
 export I3_
+export I9_
 
 # outer ⊗ \otimes
 # inner ⊙ \odot
@@ -459,8 +460,25 @@ function (⊗₁₃²⁴)(A::TensorValue{3,3,Float64}, B::TensorValue{3,3,Float6
   A[9]*B[9])
 end
 
-function (×ᵢ⁴)(A::TensorValue{3,3,Float64})
+"""
+    ×ᵢ⁴(A::TensorValue{3,3,Float64}) -> TensorValue{4,3,Float64}
 
+Fourth-order tensor cross product operator.
+Constructs a 4th-order antisymmetric-like tensor from a second-order tensor `A` 
+(3×3 matrix), used for double contractions.
+
+This operator implements a mapping that enables consistent evaluation of terms like:
+`∂Ψ/∂J * ×ᵢ⁴(F)` in hyperelastic models, where `×ᵢ⁴` acts as a specialized 
+tensor product for assembling fourth-order stiffness contributions from skew-symmetric operators.
+
+# Arguments
+- `A::TensorValue{3,3,Float64}`: A 3×3 second-order tensor, passed as a flat TensorValue.
+
+# Returns
+- `TensorValue{9,9,Float64}`: A 4th-order tensor stored in flattened form (81 components), 
+  containing antisymmetric combinations of `A` components.
+"""
+function (×ᵢ⁴)(A::TensorValue{3,3,Float64})
   TensorValue(0.0, 0.0, 0.0, 0.0, A[9], -A[8], 0.0, -A[6], A[5], 0.0, 0.0, 0.0, -A[9],
     0.0, A[7], A[6], 0.0, -A[4], 0.0, 0.0, 0.0, A[8], -A[7], 0.0, -A[5], A[4], 0.0, 0.0, -A[9],
     A[8], 0.0, 0.0, 0.0, 0.0, A[3], -A[2], A[9], 0.0, -A[7], 0.0, 0.0, 0.0, -A[3], 0.0,
@@ -736,8 +754,8 @@ end
   Meta.parse("TensorValue{D,D, Float64}($str)")
 end
 
-const I3_ = diagm(vec(ones(3,1)))
-const I9_ = diagm(vec(ones(9,1)))
+const I3_ = TensorValue(Matrix(1.0I, 3, 3))
+const I9_ = TensorValue(Matrix(1.0I, 9, 9))
 
 function I3() 
   TensorValue(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
