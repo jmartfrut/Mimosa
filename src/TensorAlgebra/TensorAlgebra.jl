@@ -29,6 +29,8 @@ export Contraction_IP_JPKL
 export Contraction_IP_PJKL
 export I3_
 export I9_
+export SI3
+export SI9
 
 # outer ⊗ \otimes
 # inner ⊙ \odot
@@ -487,6 +489,10 @@ function (×ᵢ⁴)(A::TensorValue{3,3,Float64})
     0.0, 0.0, 0.0, A[5], -A[4], 0.0, -A[2], A[1], 0.0, 0.0, 0.0, 0.0)
 end
 
+function (×ᵢ⁴)(A::SMatrix)
+  get_array(×ᵢ⁴(TensorValue(A)))
+end
+
 
 function Gridap.TensorValues.cross(A::TensorValue{3,3,Float64}, B::TensorValue{3,3,Float64})
 
@@ -756,6 +762,9 @@ end
 
 const I3_ = TensorValue(Matrix(1.0I, 3, 3))
 const I9_ = TensorValue(Matrix(1.0I, 9, 9))
+
+const SI3 = SMatrix{3,3}(1.0I)
+const SI9 = SMatrix{9,9}(1.0I)
 
 function I3() 
   TensorValue(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
