@@ -13,6 +13,7 @@ using ..TensorAlgebra: I9
 
 export NeoHookean3D
 export MoneyRivlin3D
+export MooneyRivlin3D
 export LinearElasticity3D
 export IdealDielectric
 export ThermalModel
@@ -68,7 +69,12 @@ end
   ρ::Float64=0.0
 end
 
-@kwdef struct MoneyRivlin3D <: Mechano
+function MoneyRivlin3D(args...;kwargs...)
+  @warn "MoneyRivlin3D is deprecated and it will be removed at the end of 2025. Replace it by MooneyRivlin3D."
+  MooneyRivlin3D(args...;kwargs...)
+end
+
+@kwdef struct MooneyRivlin3D <: Mechano
   λ::Float64
   μ1::Float64
   μ2::Float64
