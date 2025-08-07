@@ -64,178 +64,70 @@ function _δδ_λ_2D(λ::Float64)
     λ)
 end 
 
+"""
+    _δδ_μ_3D(μ::Float64)::TensorValue{9,9,Float64,81}
+
+Constructs the 4th-order isotropic identity tensor in 3D (Voigt form), scaled by the shear modulus `μ`.
+
+This tensor corresponds to the **minor-symmetric identity operator** often denoted as:
+
+```math
+\\delta_{ik} \\delta_{jl} + \\delta_{il} \\delta_{jk}
+```
+
+scaled by `μ`, and flattened into a 9×9 representation (81 components) compatible with Voigt notation. It is commonly used in **linear or nonlinear elasticity** models to represent contributions from the deviatoric part of the stress-strain relation, such as in Neo-Hookean or St. Venant-Kirchhoff models.
+
+### Arguments
+- `μ::Float64`: The shear modulus of the material (second Lamé parameter).
+
+### Returns
+- `TensorValue{9,9,Float64,81}`: A flattened 4th-order tensor, with non-zero entries on symmetric index pairs.
+"""
 function _δδ_μ_3D(μ::Float64)
   TensorValue{9,9,Float64,81}(  
-    2.0*μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    2.0*μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    2.0*μ)
+    2.0*μ, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0,   μ, 0.0,   μ,   0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0,   μ, 0.0,   0.0, 0.0,   μ, 0.0, 0.0,
+      0.0,   μ, 0.0,   μ,   0.0, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0, 2.0*μ, 0.0, 0.0, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0,   0.0,   μ, 0.0,   μ, 0.0,
+      0.0, 0.0,   μ, 0.0,   0.0, 0.0,   μ, 0.0, 0.0,
+      0.0, 0.0, 0.0, 0.0,   0.0,   μ, 0.0,   μ, 0.0,
+      0.0, 0.0, 0.0, 0.0,   0.0, 0.0, 0.0, 0.0, 2.0*μ)
 end
 
+"""
+    _δδ_λ_3D(λ::Float64)::TensorValue{9,9,Float64,81}
+
+Constructs the volumetric (dilatational) part of a 4th-order elasticity tensor in 3D, 
+represented in Voigt notation and scaled by the Lamé parameter `λ`.
+
+This tensor corresponds to the outer product of the second-order identity tensor with itself:
+
+```math
+\\mathbb{I}^{\\text{vol}}_{ijkl} = \\lambda \\delta_{ij} \\delta_{kl}
+```
+
+which is used to model the volumetric response of an isotropic linear elastic material.
+
+### Arguments
+- `λ::Float64`: The first Lamé parameter, controlling the material's resistance to volumetric (dilatational) deformation.
+
+### Returns
+- `TensorValue{9,9,Float64,81}`: A flattened 4th-order tensor (9×9) of the volumetric deformation.
+"""
 function _δδ_λ_3D(λ::Float64)
-  TensorValue{9,9,Float64,81}(  
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ)
+  TensorValue{9,9,Float64,81}(
+          λ, 0.0, 0.0, 0.0,   λ, 0.0, 0.0, 0.0,   λ,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+          λ, 0.0, 0.0, 0.0,   λ, 0.0, 0.0, 0.0,   λ,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+          λ, 0.0, 0.0, 0.0,   λ, 0.0, 0.0, 0.0,   λ)
 end
-
-
-
 
 
 function Gridap.TensorValues.outer(A::TensorValue{D,D,Float64}, B::TensorValue{D,D,Float64}) where {D}
