@@ -403,6 +403,41 @@ function POD_collect_data()
     end
 end
 
+function POD_read_or_collect_data()
+    f = 1.05
+    k_list = [1,3,5,10,15,17,20,25,30]
+    l_list = [1,3,5,10,12,15,20]
+    k_l_list = []
+    for k in k_list, l in l_list
+        push!(k_l_list,(k,l))
+    end
+    total = length(k_l_list)
+    # gmsh_lock = ReentrantLock()
+    i = 0
+    folder = "scripts/MB Ex 3/POD_red_Solutions/V1/"
+    for k_l in k_l_list
+        k, l = k_l
+        try
+            file_name = folder*"MaterialParameter$f/RedParam_k_$(k)_l_$(l)x_.csv"
+            x_list = CSV.File(file_name) |> Tables.matrix
+            E = Max_Error_rel(x_list,k,l,f)
+            println("Current read k l = $k_l :: Executed = $i out of $total :: Error = $E")
+        catch
+            𝛷 = MultiField_Tuncated_Basis(U_x_u, U_x_𝜑, k, l)
+            println("Current computation k l = $k_l")
+            x_list, b_list = POD_Incremental_Solver(𝛷,f,false)
+            df_x = DataFrame(x_list, :auto)
+            df_b = DataFrame(b_list, :auto)
+            mkpath(folder * "MaterialParameter$f")
+            CSV.write(folder*"MaterialParameter$f/RedParam_k_$(k)_l_$(l)x_.csv",df_x)
+            CSV.write(folder*"MaterialParameter$f/RedParam_k_$(k)_l_$(l)b_.csv",df_b)
+            i += 1
+            E = Max_Error_rel(x_list,k,l,f)
+            println("Current executed k l = $k_l :: Executed = $i out of $total :: Error = $E")
+        end
+    end
+end
+
 #endregion
 ##
 
