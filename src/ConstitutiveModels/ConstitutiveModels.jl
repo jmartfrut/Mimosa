@@ -4,10 +4,6 @@ using Gridap
 using ForwardDiff
 using LinearAlgebra
 using ..TensorAlgebra
-using ..TensorAlgebra: _δδ_μ_3D
-using ..TensorAlgebra: _δδ_λ_3D
-using ..TensorAlgebra: _δδ_μ_2D
-using ..TensorAlgebra: _δδ_λ_2D
 using ..TensorAlgebra: I3
 using ..TensorAlgebra: I9
 
@@ -177,7 +173,7 @@ function (obj::LinearElasticity3D)(::DerivativeStrategy{:analytic})
   F, _, _ = _getKinematic(obj)
   # I33 = TensorValue(Matrix(1.0I, 3, 3))
   I33=I3()
-  ∂Ψuu(∇u) = _δδ_μ_3D(obj.μ) + _δδ_λ_3D(obj.λ)
+  ∂Ψuu(∇u) = obj.μ * (δᵢₖδⱼₗ3D + δᵢₗδⱼₖ3D) + obj.λ * δᵢⱼδₖₗ3D
   ∂Ψu(∇u) = ∂Ψuu(∇u) ⊙ (F(∇u) - I33)
   Ψ(∇u) = 0.5 * (F(∇u) - I33) ⊙ (∂Ψuu(∇u) ⊙ (F(∇u) - I33))
   return (Ψ, ∂Ψu, ∂Ψuu)

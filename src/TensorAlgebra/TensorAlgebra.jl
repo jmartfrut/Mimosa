@@ -14,6 +14,9 @@ export (⊗₁²³)
 export (⊗₁₃²⁴)
 export (⊗₁₂³⁴)
 export (⊗₁²)
+export δᵢⱼδₖₗ3D
+export δᵢₖδⱼₗ3D
+export δᵢₗδⱼₖ3D
 export I3
 export I9
 
@@ -24,218 +27,57 @@ export I9
 # dot ⋅ * 
 
 
-function _δδ_μ_2D(μ::Float64)
-  TensorValue{4,4,Float64,16}(  
-    2*μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    μ,
-    0.0,
-    0.0,
-    μ,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    2.0*μ)
-end 
+@inline _flat_idx(i::Int, j::Int, N::Int) = i + N*(j-1)
 
-function _δδ_λ_2D(λ::Float64)
-  TensorValue{4,4,Float64,16}(  
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ)
-end 
+@inline _flat_idx(i::Int, j::Int, k::Int, l::Int, N::Int) = _flat_idx(_flat_idx(i,j,N), _flat_idx(k,l,N), N)
 
-function _δδ_μ_3D(μ::Float64)
-  TensorValue{9,9,Float64,81}(  
-    2.0*μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    2.0*μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    μ,
-    0.0,
-    μ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    2.0*μ)
-end
+@inline _full_idx2(α::Int, N::Int) = ((α-1)%N+1 ,(α-1)÷N+1)
 
-function _δδ_λ_3D(λ::Float64)
-  TensorValue{9,9,Float64,81}(  
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    λ)
+@inline _full_idx4(α::Int, β::Int, N::Int) = (_full_idx2(α,N)..., _full_idx2(β,N)...)
+
+@inline _full_idx4(α::Int, N::Int) = _full_idx4(_full_idx2(α,N*N)...,N)
+
+
+function _Kroneckerδδ(δδ::Function, N::Int)
+  TensorValue{N*N,N*N,Float64}(ntuple(α -> begin
+    i, j, k, l = _full_idx4(α,N)
+    δδ(i,j,k,l) ? 1.0 : 0.0
+  end,
+  N^4))
 end
 
 
+"""
+    δᵢⱼδₖₗ3D::TensorValue{9,9,Float64}
 
+Constructs the 4th-order tensor (in flattened 9x9 form)
+```math
+T_{ijkl} = δ_{ij} δ_{kl}
+```
+"""
+const δᵢⱼδₖₗ3D = _Kroneckerδδ((i,j,k,l) -> i==j && k==l, 3)
+
+
+"""
+    δᵢₖδⱼₗ3D::TensorValue{9,9,Float64}
+
+Constructs the 4th-order tensor (in flattened 9x9 form)
+```math
+T_{ijkl} = δ_{ik} δ_{jl}
+```
+"""
+const δᵢₖδⱼₗ3D = _Kroneckerδδ((i,j,k,l) -> i==k && j==l, 3)
+
+
+"""
+    δᵢₗδⱼₖ3D::TensorValue{9,9,Float64}
+
+Constructs the 4th-order tensor (in flattened 9x9 form)
+```math
+T_{ijkl} = δ_{il} δ_{jk}
+```
+"""
+const δᵢₗδⱼₖ3D = _Kroneckerδδ((i,j,k,l) -> i==l && j==k, 3)
 
 
 function Gridap.TensorValues.outer(A::TensorValue{D,D,Float64}, B::TensorValue{D,D,Float64}) where {D}
