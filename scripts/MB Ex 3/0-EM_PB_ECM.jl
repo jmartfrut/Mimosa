@@ -286,6 +286,8 @@ function POD_Increment_Solver(
     𝛷,
     trace=true
     )
+    prev_step = step-(1/2^bisect)
+    x0_copy = copy(x0)
     n, k_l = size(𝛷)
     b_POD = Vector{Float64}(undef,k_l)
     K_T_POD_pos_mult = Matrix{Float64}(undef,n,k_l)
@@ -295,17 +297,34 @@ function POD_Increment_Solver(
     fe_spaces = get_fe_spaces(model,dirichletbc)
     norm_res = 1
     count = 0
-    x0_copy = copy(x0)
     if trace
         println("\n==============================================")
     end
     println("Material parameter = $f :: step = $step of $nsteps k+l = $k_l")
     while norm_res>1e-12
-        if count>15 || norm_res>1e2
+        if count>20 || norm_res>1e5
             bisect += 1
-            println("bisect = $bisect")
-            x0, cache, _, _, _ = run(x0_copy,step-(1/(2^bisect)),nsteps,𝜑ᵇ,f,model, Ω, dΩ,cache,x_list,b_list,bisect)
-            count = 1
+            if bisect > 5
+                throw("bisect = $bisect is too high")            
+            end
+            if trace
+                println("bisect = $bisect")
+            end
+            x0 = x0_copy
+            for i in 1:2^bisect
+                x0, cache, _, _ = POD_Increment_Solver(
+                    x0,prev_step+(i/2^bisect),nsteps,𝜑ᵇ,f,
+                    model, Ω, dΩ,
+                    cache,x_list,b_list,
+                    bisect,
+                    𝛷,
+                    trace
+                    )
+                if prev_step+(i/2^bisect)>step
+                    break                    
+                end
+            end
+            count = 0
         end
         ph = FEFunction(fe_spaces.U, 𝛷*x0)
         b, K_T = get_numeric_res_and_jac(ph,fe_spaces,Ω,res,jac)
