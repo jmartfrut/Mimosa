@@ -686,6 +686,21 @@ function Gridap.TensorValues.inner(Ten1::TensorValue{9,9,Float64}, Ten2::TensorV
     Ten1[9] * Ten2[1] + Ten1[18] * Ten2[2] + Ten1[27] * Ten2[3] + Ten1[36] * Ten2[4] + Ten1[45] * Ten2[5] + Ten1[54] * Ten2[6] + Ten1[63] * Ten2[7] + Ten1[72] * Ten2[8] + Ten1[81] * Ten2[9])
 end
 
+
+function Gridap.TensorValues.inner(Ten1::TensorValue{3,3,Float64}, Ten2::TensorValue{9,9,Float64})
+  TensorValue(
+    Ten1[1] * Ten2[1] + Ten1[2] * Ten2[10] + Ten1[3] * Ten2[19] + Ten1[4] * Ten2[28] + Ten1[5] * Ten2[37] + Ten1[6] * Ten2[46] + Ten1[7] * Ten2[55] + Ten1[8] * Ten2[64] + Ten1[9] * Ten2[73],
+    Ten1[1] * Ten2[2] + Ten1[2] * Ten2[11] + Ten1[3] * Ten2[20] + Ten1[4] * Ten2[29] + Ten1[5] * Ten2[38] + Ten1[6] * Ten2[47] + Ten1[7] * Ten2[56] + Ten1[8] * Ten2[65] + Ten1[9] * Ten2[74],
+    Ten1[1] * Ten2[3] + Ten1[2] * Ten2[12] + Ten1[3] * Ten2[21] + Ten1[4] * Ten2[30] + Ten1[5] * Ten2[39] + Ten1[6] * Ten2[48] + Ten1[7] * Ten2[57] + Ten1[8] * Ten2[66] + Ten1[9] * Ten2[75],
+    Ten1[1] * Ten2[4] + Ten1[2] * Ten2[13] + Ten1[3] * Ten2[22] + Ten1[4] * Ten2[31] + Ten1[5] * Ten2[40] + Ten1[6] * Ten2[49] + Ten1[7] * Ten2[58] + Ten1[8] * Ten2[67] + Ten1[9] * Ten2[76],
+    Ten1[1] * Ten2[5] + Ten1[2] * Ten2[14] + Ten1[3] * Ten2[23] + Ten1[4] * Ten2[32] + Ten1[5] * Ten2[41] + Ten1[6] * Ten2[50] + Ten1[7] * Ten2[59] + Ten1[8] * Ten2[68] + Ten1[9] * Ten2[77],
+    Ten1[1] * Ten2[6] + Ten1[2] * Ten2[15] + Ten1[3] * Ten2[24] + Ten1[4] * Ten2[33] + Ten1[5] * Ten2[42] + Ten1[6] * Ten2[51] + Ten1[7] * Ten2[60] + Ten1[8] * Ten2[69] + Ten1[9] * Ten2[78],
+    Ten1[1] * Ten2[7] + Ten1[2] * Ten2[16] + Ten1[3] * Ten2[25] + Ten1[4] * Ten2[34] + Ten1[5] * Ten2[43] + Ten1[6] * Ten2[52] + Ten1[7] * Ten2[61] + Ten1[8] * Ten2[70] + Ten1[9] * Ten2[79],
+    Ten1[1] * Ten2[8] + Ten1[2] * Ten2[17] + Ten1[3] * Ten2[26] + Ten1[4] * Ten2[35] + Ten1[5] * Ten2[44] + Ten1[6] * Ten2[53] + Ten1[7] * Ten2[62] + Ten1[8] * Ten2[71] + Ten1[9] * Ten2[80],
+    Ten1[1] * Ten2[9] + Ten1[2] * Ten2[18] + Ten1[3] * Ten2[27] + Ten1[4] * Ten2[36] + Ten1[5] * Ten2[45] + Ten1[6] * Ten2[54] + Ten1[7] * Ten2[63] + Ten1[8] * Ten2[72] + Ten1[9] * Ten2[81])
+end
+
+
 function Gridap.TensorValues.inner(Ten1::TensorValue{3,9,Float64}, Ten2::TensorValue{3,3,Float64})
   VectorValue(Ten1[1] * Ten2[1] + Ten1[4] * Ten2[2] + Ten1[7] * Ten2[3] + Ten1[10] * Ten2[4] + Ten1[13] * Ten2[5] + Ten1[16] * Ten2[6] + Ten1[19] * Ten2[7] + Ten1[22] * Ten2[8] + Ten1[25] * Ten2[9],
     Ten1[2] * Ten2[1] + Ten1[5] * Ten2[2] + Ten1[8] * Ten2[3] + Ten1[11] * Ten2[4] + Ten1[14] * Ten2[5] + Ten1[17] * Ten2[6] + Ten1[20] * Ten2[7] + Ten1[23] * Ten2[8] + Ten1[26] * Ten2[9],

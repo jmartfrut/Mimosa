@@ -17,11 +17,16 @@ end
 @publish TensorAlgebra (⊗₁²)
 
 
+@publish ConstitutiveModels (+)
 @publish ConstitutiveModels logreg
 @publish ConstitutiveModels DerivativeStrategy
+@publish ConstitutiveModels Mechano
 @publish ConstitutiveModels LinearElasticity3D
 @publish ConstitutiveModels NeoHookean3D
 @publish ConstitutiveModels MoneyRivlin3D
+@publish ConstitutiveModels Yeoh3D
+@publish ConstitutiveModels EightChain
+@publish ConstitutiveModels ComposedMechanicalModel
 @publish ConstitutiveModels ThermalModel
 @publish ConstitutiveModels IdealDielectric
 @publish ConstitutiveModels ElectroMech

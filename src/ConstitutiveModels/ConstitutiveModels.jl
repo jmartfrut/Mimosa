@@ -11,9 +11,15 @@ using ..TensorAlgebra: _δδ_λ_2D
 using ..TensorAlgebra: I3
 using ..TensorAlgebra: I9
 
+import Base: +
+
+export (+)
 export NeoHookean3D
 export MoneyRivlin3D
 export LinearElasticity3D
+export Yeoh3D
+export EightChain
+export ComposedMechanicalModel
 export IdealDielectric
 export ThermalModel
 export ElectroMech
@@ -73,6 +79,27 @@ end
   μ1::Float64
   μ2::Float64
   ρ::Float64=0.0
+end
+
+@kwdef struct Yeoh3D <: Mechano
+  C::NTuple{N,Float64} where N
+  function Yeoh3D(Ci::Float64...)
+    new(Ci)
+  end
+end
+
+@kwdef struct EightChain <: Mechano
+  μ::Float64
+  N::Float64
+end
+
+@kwdef struct ComposedMechanicalModel <: Mechano
+  Model1::Mechano
+  Model2::Mechano
+end
+
+function (+)(Model1::Mechano, Model2::Mechano)
+  ComposedMechanicalModel(Model1,Model2)
 end
 
 # ===================
@@ -230,6 +257,75 @@ function (obj::MoneyRivlin3D)(::DerivativeStrategy{:analytic})
   # ∂Ψuu(∇u) = obj.μ1 * I_ + obj.μ2 * (F(∇u) × (I_ × F(∇u))) + ∂Ψ2_∂J2(∇u) * (H(F(∇u)) ⊗ H(F(∇u))) + (I_ × (∂Ψ_∂H(∇u) + ∂Ψ_∂J(∇u) * F(∇u)))
   ∂Ψuu(∇u) = obj.μ1 * I_ + obj.μ2 * (F(∇u) × (I_ × F(∇u))) + ∂Ψ2_∂J2(∇u) * (H(F(∇u)) ⊗ H(F(∇u))) + ×ᵢ⁴(∂Ψ_∂H(∇u) + ∂Ψ_∂J(∇u) * F(∇u))
   return (Ψ, ∂Ψu, ∂Ψuu)
+end
+
+function (obj::Yeoh3D)(::DerivativeStrategy{:autodiff})
+  F, _, _ = _getKinematic(obj)
+  Ψ(∇u) = mapreduce(((i,Ci),) -> Ci * (tr(F(∇u)*F(∇u)') - 3)^i, +, enumerate(obj.C))
+  ∂Ψu(∇u) = ForwardDiff.gradient(Ψ, get_array(∇u))
+  ∂Ψuu(∇u) = ForwardDiff.jacobian(∂Ψu, get_array(∇u))
+  return (Ψ, TensorValue ∘ ∂Ψu, TensorValue ∘ ∂Ψuu)
+end
+
+### Esta implementación es temporal y se tiene que mover a TensorAlgebra
+_full_idx2(α,N) = ((α-1)%N+1, (α-1)÷N+1)
+_full_idx4(α,β,N) = (_full_idx2(α,N)..., _full_idx2(β,N)...)
+_full_idx4(α,N) = _full_idx4(_full_idx2(α,N*N)...,N)
+const δᵢₖδⱼₗ = TensorValue{9,9,Float64,81}(ntuple(
+  α -> begin
+    i, j, k, l = _full_idx4(α,3)
+    (i==k && j==l) ? 1.0 : 0.0
+  end,
+  81
+))
+const δⱼₖδᵢₗ = TensorValue{9,9,Float64,81}(ntuple(
+  α -> begin
+    i, j, k, l = _full_idx4(α,3)
+    (j==k && i==l) ? 1.0 : 0.0
+  end,
+  81
+))
+### Fin de la implementación temporal
+
+function (obj::Yeoh3D)(::DerivativeStrategy{:analytic})
+  F_, _, _ = _getKinematic(obj)
+  Ψ(∇u) = mapreduce(((i,Ci),) -> Ci * (tr(F_(∇u)'*F_(∇u)) - 3)^i, +, enumerate(obj.C))
+  ∂Ψu(∇u) = mapreduce(((i,Ci),) -> begin
+    F = F_(∇u)
+    trC = tr(F'*F)
+    Ci * i * (trC-3)^(i-1) * (δⱼₖδᵢₗ ⊙ F + F' ⊙ δᵢₖδⱼₗ)' # TODO: ¿Por qué transpuesto? ¿Está bien definido el producto contraído?
+  end, +, enumerate(obj.C))
+  ∂Ψuu(∇u) = mapreduce(((i,Ci),) -> begin
+    F = F_(∇u)
+    trC = tr(F'*F)
+    H = (δⱼₖδᵢₗ ⊙ F + F' ⊙ δᵢₖδⱼₗ)'
+    Ci * i * (i-1) * (trC-3)^(i-2) * H ⊗ H + Ci * i * (trC-3)^(i-1) * (δⱼₖδᵢₗ * δᵢₖδⱼₗ + δⱼₖδᵢₗ * δᵢₖδⱼₗ) # TODO: Falla algún término que afectan a la diagonal y diagonales secundarias
+  end, +, enumerate(obj.C))
+  return (Ψ, ∂Ψu, ∂Ψuu)
+end
+
+function (obj::EightChain)(::DerivativeStrategy{:autodiff})
+  function inv_Langevin(x)
+    3*x*(35 - 12*x^2)/(35 - 33*x^2)
+  end
+  Ψ(∇u) = begin
+    F, _, _ = _getKinematic(obj)
+    C = F(∇u)' * F(∇u)
+    C_iso = det(C)^(-2/3) * C
+    β = sqrt(tr(C_iso) / 3 / obj.N)
+    L = inv_Langevin(β)
+    Ψ = obj.μ * obj.N *(obj.β*L + log(L / sinh(L)))
+  end
+  ∂Ψu(∇u) = ForwardDiff.gradient(Ψ, get_array(∇u))
+  ∂Ψuu(∇u) = ForwardDiff.jacobian(∂Ψu, get_array(∇u))
+  return (Ψ, TensorValue ∘ ∂Ψu, TensorValue ∘ ∂Ψuu)
+end
+
+function (obj::ComposedMechanicalModel)(strategy::DerivativeStrategy{T}) where T
+  DΨ1 = obj.Model1(strategy)
+  DΨ2 = obj.Model2(strategy)
+  Ψ, ∂Ψ, ∂∂Ψ = map((ψ1,ψ2) -> (x) -> ψ1(x) + ψ2(x), DΨ1, DΨ2)
+  return (Ψ, ∂Ψ, ∂∂Ψ)
 end
 
 function (obj::ElectroMech)(strategy::DerivativeStrategy{:analytic})
