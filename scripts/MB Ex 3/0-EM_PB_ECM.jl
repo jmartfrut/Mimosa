@@ -374,6 +374,56 @@ function POD_Incremental_Solver(𝛷,f,trace=true)
     return x_list, b_list
 end
 
+function compute_residual_contributions(x0,𝛷,f,step,nsteps,𝜑ᵇ)
+    model, Ω, dΩ = nothing, nothing, nothing
+    lock(gmsh_lock) do
+        model, Ω, dΩ =  get_trian_and_measure()
+    end
+    dirichletbc = get_DirichletBC(𝜑ᵇ*(step/nsteps))
+    fe_spaces = get_fe_spaces(model,dirichletbc)
+    assem = SparseMatrixAssembler(fe_spaces.U,fe_spaces.V)
+    ph = FEFunction(fe_spaces.U, 𝛷*x0)
+    res, jac = get_symbolic_res_and_jac(dΩ,f)
+    RES = res(ph,get_fe_basis(fe_spaces.V))
+    res_contributions = collect_cell_vector(fe_spaces.V,RES)
+    glo_res_element_contributions = []
+    for i in eachindex(res_contributions[2][1])
+        b = allocate_vector(assem,res_contributions)
+        b[filter(x -> x >= 0, res_contributions[2][1][i][1])] = res_contributions[1][1][i][1][findall(x -> x > 0, res_contributions[2][1][i][1])]
+        push!(glo_res_element_contributions,𝛷'*b)
+    end
+    return glo_res_element_contributions
+end
+
+function POD_Incremental_Solver_store_contributions(𝛷,f,trace=true)
+    model, Ω, dΩ = nothing, nothing, nothing
+    lock(gmsh_lock) do
+        model, Ω, dΩ =  get_trian_and_measure()
+    end
+    nsteps = 300
+    𝜑ᵇ = 5000.0
+    n, k_l = size(𝛷)
+    x0 = zeros(Float64,k_l)
+    x_list = []
+    b_list = []
+    r_contri_list  = []
+    cache = nothing
+    bisect = 0
+    for step in 1:nsteps
+        x0, cache, x_list, b_list = POD_Increment_Solver(
+            x0,step,nsteps,𝜑ᵇ,f,
+            model, Ω, dΩ,
+            cache,x_list,b_list,
+            bisect,
+            𝛷,
+            trace
+        )
+        r_contribution = compute_residual_contributions(x0,f,step,nsteps,𝜑ᵇ)
+        push!(r_contri_list,r_contribution)
+    end
+    return x_list, b_list, r_contri_list
+end
+
 # const gmsh_lock = ReentrantLock()
 function POD_collect_data()
     f = 1.05
@@ -420,7 +470,7 @@ function POD_read_or_collect_data()
         try
             file_name = folder*"MaterialParameter$f/RedParam_k_$(k)_l_$(l)x_.csv"
             x_list = CSV.File(file_name) |> Tables.matrix
-            E = Max_Error_rel(x_list,k,l,f)
+            E = Max_Error_rel(eachcol(x_list),k,l,f)
             println("Current read k l = $k_l :: Executed = $i out of $total :: Error = $E")
         catch
             𝛷 = MultiField_Tuncated_Basis(U_x_u, U_x_𝜑, k, l)
@@ -435,6 +485,22 @@ function POD_read_or_collect_data()
             E = Max_Error_rel(x_list,k,l,f)
             println("Current executed k l = $k_l :: Executed = $i out of $total :: Error = $E")
         end
+    end
+end
+
+function POD_collect_data_res_contributions()
+    f_list = [0.9,1.0,1.1]
+    k, l = 17,12
+    i = 0
+    for f in f_list
+        𝛷 = MultiField_Tuncated_Basis(U_x_u, U_x_𝜑, k, l)
+        println("Current f = $f")
+        x_list, b_list, r_contri_list = POD_Incremental_Solver_store_contributions(𝛷,f,false)
+        folder = "scripts/MB Ex 3/POD_red_Solutions/V1_r_contributions/"
+        mkpath(folder * "MaterialParameter$f")
+        jldsave(folder*"MaterialParameter$f/RedParam_k_$(k)_l_$(l)_f_$f.jld2",x_list = x_list, b_list = b_list, r_contri_list = r_contri_list )
+        i += 1
+        println("Current executed f = $f")
     end
 end
 
@@ -497,7 +563,42 @@ E = Max_Error_rel(x_list,k,l,f)
 
 POD_collect_data()
 
+POD_read_or_collect_data()
+
+POD_collect_data_res_contributions()
+
 
 #endregion
+
+##
+
+
+##
+
+#region Scratch to test the extraction of elemental contributions
+
+f = 1.0
+model, Ω, dΩ =  get_trian_and_measure()
+dirichletbc = get_DirichletBC(1000.0)
+fe_spaces = get_fe_spaces(model,dirichletbc)
+assem = SparseMatrixAssembler(fe_spaces.U,fe_spaces.V)
+xu = zeros(Float64, num_free_dofs(fe_spaces.Vu))
+xφ = zeros(Float64, num_free_dofs(fe_spaces.Vφ))
+x0 = vcat(xu, xφ)
+println("number of dofs = $(length(x0))")
+ph = FEFunction(fe_spaces.U, x0)
+res, jac = get_symbolic_res_and_jac(dΩ,f)
+RES = res(ph,get_fe_basis(fe_spaces.V))
+res_contributions = collect_cell_vector(fe_spaces.V,RES)
+glo_res_element_contributions = []
+for i in eachindex(res_contributions[2][1])
+    b = allocate_vector(assem,res_contributions)
+    b[filter(x -> x >= 0, res_contributions[2][1][i][1])] = res_contributions[1][1][i][1][findall(x -> x > 0, res_contributions[2][1][i][1])]
+    push!(glo_res_element_contributions,b)
+end
+glo_res_element_contributions[1]
+
+#endregion
+
 
 ##
