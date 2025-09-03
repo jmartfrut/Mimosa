@@ -27,6 +27,13 @@ end
 @publish ConstitutiveModels ElectroMech
 @publish ConstitutiveModels ThermoElectroMech
 @publish ConstitutiveModels ThermoMech
+@publish ConstitutiveModels Visco
+@publish ConstitutiveModels ViscoElastic
+@publish ConstitutiveModels ViscousIncompressible
+@publish ConstitutiveModels GeneralizedMaxwell
+@publish ConstitutiveModels IncompressibleNeoHookean3D
+@publish ConstitutiveModels initializeStateVariables
+@publish ConstitutiveModels updateStateVariables!
 
 @publish WeakForms CouplingStrategy
 @publish WeakForms residual_EM

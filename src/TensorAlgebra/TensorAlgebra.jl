@@ -2,6 +2,8 @@ module TensorAlgebra
 
 using Gridap
 using Gridap.TensorValues
+using LinearAlgebra
+using StaticArrays
 import Base: *
 import Base: +
 
@@ -14,8 +16,21 @@ export (⊗₁²³)
 export (⊗₁₃²⁴)
 export (⊗₁₂³⁴)
 export (⊗₁²)
+export msqrt
+export cof
+export Cross_I4_A
 export I3
 export I9
+export inner42
+export Outer_12_34
+export Outer_13_24
+export Outer_14_23
+export Contraction_IP_JPKL
+export Contraction_IP_PJKL
+export I3_
+export I9_
+export SI3
+export SI9
 
 # outer ⊗ \otimes
 # inner ⊙ \odot
@@ -447,14 +462,35 @@ function (⊗₁₃²⁴)(A::TensorValue{3,3,Float64}, B::TensorValue{3,3,Float6
   A[9]*B[9])
 end
 
-function (×ᵢ⁴)(A::TensorValue{3,3,Float64})
+"""
+    ×ᵢ⁴(A::TensorValue{3,3,Float64}) -> TensorValue{4,3,Float64}
 
+Fourth-order tensor cross product operator.
+Constructs a 4th-order antisymmetric-like tensor from a second-order tensor `A` 
+(3×3 matrix), used for double contractions.
+
+This operator implements a mapping that enables consistent evaluation of terms like:
+`∂Ψ/∂J * ×ᵢ⁴(F)` in hyperelastic models, where `×ᵢ⁴` acts as a specialized 
+tensor product for assembling fourth-order stiffness contributions from skew-symmetric operators.
+
+# Arguments
+- `A::TensorValue{3,3,Float64}`: A 3×3 second-order tensor, passed as a flat TensorValue.
+
+# Returns
+- `TensorValue{9,9,Float64}`: A 4th-order tensor stored in flattened form (81 components), 
+  containing antisymmetric combinations of `A` components.
+"""
+function (×ᵢ⁴)(A::TensorValue{3,3,Float64})
   TensorValue(0.0, 0.0, 0.0, 0.0, A[9], -A[8], 0.0, -A[6], A[5], 0.0, 0.0, 0.0, -A[9],
     0.0, A[7], A[6], 0.0, -A[4], 0.0, 0.0, 0.0, A[8], -A[7], 0.0, -A[5], A[4], 0.0, 0.0, -A[9],
     A[8], 0.0, 0.0, 0.0, 0.0, A[3], -A[2], A[9], 0.0, -A[7], 0.0, 0.0, 0.0, -A[3], 0.0,
     A[1], -A[8], A[7], 0.0, 0.0, 0.0, 0.0, A[2], -A[1], 0.0, 0.0, A[6], -A[5], 0.0,
     -A[3], A[2], 0.0, 0.0, 0.0, -A[6], 0.0, A[4], A[3], 0.0, -A[1],
     0.0, 0.0, 0.0, A[5], -A[4], 0.0, -A[2], A[1], 0.0, 0.0, 0.0, 0.0)
+end
+
+function (×ᵢ⁴)(A::SMatrix)
+  get_array(×ᵢ⁴(TensorValue(A)))
 end
 
 
@@ -724,6 +760,11 @@ end
   Meta.parse("TensorValue{D,D, Float64}($str)")
 end
 
+const I3_ = TensorValue(Matrix(1.0I, 3, 3))
+const I9_ = TensorValue(Matrix(1.0I, 9, 9))
+
+const SI3 = SMatrix{3,3}(1.0I)
+const SI9 = SMatrix{9,9}(1.0I)
 
 function I3() 
   TensorValue(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0)
@@ -739,6 +780,247 @@ TensorValue(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+end
+
+
+"""
+  EigDecomposition
+
+Compose a 3x3 matrix from its eigenvalues and eigenvectors
+"""
+@inline function EigDecomposition(λ::SVector{3},n::SMatrix{3,3})
+  SMatrix{3,3}(λ[1]*n[1:3]*n[1:3]' + λ[2]*n[4:6]*n[4:6]' + λ[3]*n[7:9]*n[7:9]')
+end
+
+
+"""
+  msqrt(A::SMatrix)::SMatrix
+
+Compute the square root of a 3x3 matrix by means of eigen decomposition.
+
+# Arguments
+- `A::SMatrix`: the matrix to calculate the square root
+
+# Returns
+- `::SMatrix`: the squared root matrix
+"""
+@inline function msqrt(A::SMatrix{3,3})
+  λ, Q = eigen(A)
+  EigDecomposition(sqrt.(λ), Q)
+end
+
+
+"""
+  cof(A::SMatrix)::SMatrix
+
+Calculate the cofactor of a matrix.
+
+# Arguments
+- `A::SMatrix`: the matrix to calculate.
+
+# Returns
+- `SMatrix`: the cofactor matrix.
+"""
+@inline function cof(A::SMatrix)
+ return det(A)*inv(A')
+end
+
+
+"""
+  Cross_I4_A
+
+  Calculate the cross product of ... TODO: Need documentation
+"""
+@inline function Cross_I4_A(A::SMatrix)
+  dim = size(A,1)
+  return SMatrix{dim*dim,dim*dim}(
+    0.0, 0.0, 0.0, 0.0, A[9], -A[8], 0.0, -A[6], A[5], 0.0, 0.0, 0.0, -A[9],
+    0.0, A[7], A[6], 0.0, -A[4], 0.0, 0.0, 0.0, A[8], -A[7], 0.0, -A[5], A[4], 0.0, 0.0, -A[9],
+    A[8], 0.0, 0.0, 0.0, 0.0, A[3], -A[2], A[9], 0.0, -A[7], 0.0, 0.0, 0.0, -A[3], 0.0,
+    A[1], -A[8], A[7], 0.0, 0.0, 0.0, 0.0, A[2], -A[1], 0.0, 0.0, A[6], -A[5], 0.0,
+    -A[3], A[2], 0.0, 0.0, 0.0, -A[6], 0.0, A[4], A[3], 0.0, -A[1],
+    0.0, 0.0, 0.0, A[5], -A[4], 0.0, -A[2], A[1], 0.0, 0.0, 0.0, 0.0)
+end
+
+
+"""
+  inner42(::TensorValue, ::TensorValue)::TensorValue
+
+Compute the inner product of a fourth-order and a second-order tensor in a 3D space.
+
+# Arguments
+- `Ten1::TensorValue{9,9}`: A fourth-order tensor reppresented by a dim²xdim² matrix.
+- `Ten2::TensorValue{3,3}`: A second-order tensor.
+
+# Returns
+- `::TensorValue{3,3}`: The inner product.
+"""
+function inner42(Ten1::TensorValue, Ten2::TensorValue)
+  TensorValue(
+    Ten1.data[1] * Ten2.data[1] + Ten1.data[10] * Ten2.data[2] + Ten1.data[19] * Ten2.data[3] + Ten1.data[28] * Ten2.data[4] + Ten1.data[37] * Ten2.data[5] + Ten1.data[46] * Ten2.data[6] + Ten1.data[55] * Ten2.data[7] + Ten1.data[64] * Ten2.data[8] + Ten1.data[73] * Ten2.data[9],
+    Ten1.data[2] * Ten2.data[1] + Ten1.data[11] * Ten2.data[2] + Ten1.data[20] * Ten2.data[3] + Ten1.data[29] * Ten2.data[4] + Ten1.data[38] * Ten2.data[5] + Ten1.data[47] * Ten2.data[6] + Ten1.data[56] * Ten2.data[7] + Ten1.data[65] * Ten2.data[8] + Ten1.data[74] * Ten2.data[9],
+    Ten1.data[3] * Ten2.data[1] + Ten1.data[12] * Ten2.data[2] + Ten1.data[21] * Ten2.data[3] + Ten1.data[30] * Ten2.data[4] + Ten1.data[39] * Ten2.data[5] + Ten1.data[48] * Ten2.data[6] + Ten1.data[57] * Ten2.data[7] + Ten1.data[66] * Ten2.data[8] + Ten1.data[75] * Ten2.data[9],
+    Ten1.data[4] * Ten2.data[1] + Ten1.data[13] * Ten2.data[2] + Ten1.data[22] * Ten2.data[3] + Ten1.data[31] * Ten2.data[4] + Ten1.data[40] * Ten2.data[5] + Ten1.data[49] * Ten2.data[6] + Ten1.data[58] * Ten2.data[7] + Ten1.data[67] * Ten2.data[8] + Ten1.data[76] * Ten2.data[9],
+    Ten1.data[5] * Ten2.data[1] + Ten1.data[14] * Ten2.data[2] + Ten1.data[23] * Ten2.data[3] + Ten1.data[32] * Ten2.data[4] + Ten1.data[41] * Ten2.data[5] + Ten1.data[50] * Ten2.data[6] + Ten1.data[59] * Ten2.data[7] + Ten1.data[68] * Ten2.data[8] + Ten1.data[77] * Ten2.data[9],
+    Ten1.data[6] * Ten2.data[1] + Ten1.data[15] * Ten2.data[2] + Ten1.data[24] * Ten2.data[3] + Ten1.data[33] * Ten2.data[4] + Ten1.data[42] * Ten2.data[5] + Ten1.data[51] * Ten2.data[6] + Ten1.data[60] * Ten2.data[7] + Ten1.data[69] * Ten2.data[8] + Ten1.data[78] * Ten2.data[9],
+    Ten1.data[7] * Ten2.data[1] + Ten1.data[16] * Ten2.data[2] + Ten1.data[25] * Ten2.data[3] + Ten1.data[34] * Ten2.data[4] + Ten1.data[43] * Ten2.data[5] + Ten1.data[52] * Ten2.data[6] + Ten1.data[61] * Ten2.data[7] + Ten1.data[70] * Ten2.data[8] + Ten1.data[79] * Ten2.data[9],
+    Ten1.data[8] * Ten2.data[1] + Ten1.data[17] * Ten2.data[2] + Ten1.data[26] * Ten2.data[3] + Ten1.data[35] * Ten2.data[4] + Ten1.data[44] * Ten2.data[5] + Ten1.data[53] * Ten2.data[6] + Ten1.data[62] * Ten2.data[7] + Ten1.data[71] * Ten2.data[8] + Ten1.data[80] * Ten2.data[9],
+    Ten1.data[9] * Ten2.data[1] + Ten1.data[18] * Ten2.data[2] + Ten1.data[27] * Ten2.data[3] + Ten1.data[36] * Ten2.data[4] + Ten1.data[45] * Ten2.data[5] + Ten1.data[54] * Ten2.data[6] + Ten1.data[63] * Ten2.data[7] + Ten1.data[72] * Ten2.data[8] + Ten1.data[81] * Ten2.data[9])
+end
+
+
+"""
+  Outer_12_34(Matrix1::SMatrix, Matrix2::SMatrix)::SMatrix
+
+Computes the **outer product** of two second-order tensors (matrices), returning a fourth-order tensor 
+represented in a `dim² x dim²` matrix form (Voigt or flattened index notation) using combined indices.
+
+# Arguments
+- `Matrix1::SMatrix{dim, dim}`: A second-order tensor (e.g., a stress, strain, or deformation tensor).
+- `Matrix2::SMatrix{dim, dim}`: Another second-order tensor to be used in the outer product.
+
+# Returns
+- `SMatrix{dim^2, dim^2}`: A statically-sized matrix representing the fourth-order tensor formed from the outer product.
+"""
+@inline function Outer_12_34(Matrix1::SMatrix, Matrix2::SMatrix)
+   dim   =  size(Matrix1,1)
+   Out = zeros(Float64,dim*dim, dim*dim)
+   for j in 1:dim
+       for i in 1:dim
+           for l in 1:dim
+               for k in 1:dim
+                   Out[i + dim * (j - 1), k + dim * (l - 1)] += Matrix1[i,j] * Matrix2[k,l]
+               end
+           end
+       end
+   end
+   return SMatrix{dim*dim, dim*dim}(Out)
+end
+
+
+"""
+  Outer_13_24(Matrix1::SMatrix, Matrix2::SMatrix)::SMatrix
+
+Computes the **outer product** of two second-order tensors (matrices), returning a fourth-order tensor 
+represented in a `dim² x dim²` matrix form (Voigt or flattened index notation) using combined indices.
+
+# Arguments
+- `Matrix1::SMatrix{dim, dim}`: A second-order tensor (e.g., a stress, strain, or deformation tensor).
+- `Matrix2::SMatrix{dim, dim}`: Another second-order tensor to be used in the outer product.
+
+# Returns
+- `SMatrix{dim^2, dim^2}`: A statically-sized matrix representing the fourth-order tensor formed from the outer product.
+"""
+@inline function Outer_13_24(Matrix1::SMatrix, Matrix2::SMatrix)
+   dim   =  size(Matrix1,1)
+   Out = zeros(Float64,dim*dim, dim*dim)
+   for j in 1:dim
+       for i in 1:dim
+           for l in 1:dim
+               for k in 1:dim
+                   Out[i + dim * (j - 1), k + dim * (l - 1)] += Matrix1[i,k] * Matrix2[j,l]
+               end
+           end
+       end
+   end
+   return SMatrix{dim*dim, dim*dim}(Out)
+end
+
+
+"""
+  Outer_14_23(Matrix1::SMatrix, Matrix2::SMatrix)::SMatrix
+
+Computes the **outer product** of two second-order tensors (matrices), returning a fourth-order tensor 
+represented in a `dim² x dim²` matrix form (Voigt or flattened index notation) using combined indices.
+
+# Arguments
+- `Matrix1::SMatrix{dim, dim}`: A second-order tensor (e.g., a stress, strain, or deformation tensor).
+- `Matrix2::SMatrix{dim, dim}`: Another second-order tensor to be used in the outer product.
+
+# Returns
+- `SMatrix{dim^2, dim^2}`: A statically-sized matrix representing the fourth-order tensor formed from the outer product.
+"""
+@inline function Outer_14_23(Matrix1::SMatrix, Matrix2::SMatrix)
+   dim   =  size(Matrix1,1)
+   Out = zeros(Float64,dim*dim, dim*dim)
+   for j in 1:dim
+       for i in 1:dim
+           for l in 1:dim
+               for k in 1:dim
+                   Out[i + dim * (j - 1), k + dim * (l - 1)] += Matrix1[i,l] * Matrix2[j,k]
+               end
+           end
+       end
+   end
+   return SMatrix{dim*dim, dim*dim}(Out)
+end
+
+
+"""
+  Contraction_IP_JPKL(Matrix1::SMatrix, Matrix2::SMatrix)::SMatrix
+
+Performs a specific tensor contraction between a second-order tensor `Matrix1` (of size `dim x dim`)
+and a fourth-order tensor `Matrix2` (represented as a `dim² x dim²` matrix in Voigt or flattened index notation),
+returning the result as a new fourth-order tensor (in the same flattened form).
+
+The contraction follows the **index contraction pattern**, where addition is performed for repeated indices.
+
+# Arguments
+- `Matrix1::SMatrix{dim, dim}`: A second-order tensor (e.g., a stress or deformation tensor).
+- `Matrix2::SMatrix{dim^2, dim^2}`: A fourth-order tensor written in matrix form using combined indices.
+
+# Returns
+- `SMatrix{dim^2, dim^2}`: The resulting fourth-order tensor in the same matrix representation.
+"""
+@inline function Contraction_IP_JPKL(Matrix1::SMatrix, Matrix2::SMatrix)
+   dim   =  size(Matrix1,1)
+   Out   =  zeros(Float64,dim*dim, dim*dim)
+   for i in 1:dim
+       for j in 1:dim
+           for k in 1:dim
+               for l in 1:dim
+                   for p in 1:dim
+                       Out[i + dim * (j - 1), k + dim * (l - 1)] += Matrix1[i,p] * Matrix2[j + dim * (p - 1),k + dim * (l - 1)]
+                   end
+               end
+           end
+       end
+   end
+   return SMatrix{dim*dim, dim*dim}(Out)
+end
+
+
+"""
+  Contraction_IP_PJKL(Matrix1::SMatrix, Matrix2::SMatrix)::SMatrix
+
+Performs a specific tensor contraction between a second-order tensor `Matrix1` (of size `dim x dim`)
+and a fourth-order tensor `Matrix2` (represented as a `dim² x dim²` matrix in Voigt or flattened index notation),
+returning the result as a new fourth-order tensor (in the same flattened form).
+
+The contraction follows the **index contraction pattern**, where addition is performed for repeated indices.
+
+# Arguments
+- `Matrix1::SMatrix{dim, dim}`: A second-order tensor (e.g., a stress or deformation tensor).
+- `Matrix2::SMatrix{dim^2, dim^2}`: A fourth-order tensor written in matrix form using combined indices.
+
+# Returns
+- `SMatrix{dim^2, dim^2}`: The resulting fourth-order tensor in the same matrix representation.
+"""
+@inline function Contraction_IP_PJKL(Matrix1::SMatrix, Matrix2::SMatrix)
+   dim   =  size(Matrix1,1)
+   Out   =  zeros(Float64,dim*dim, dim*dim)
+   for i in 1:dim
+       for j in 1:dim
+           for k in 1:dim
+               for l in 1:dim
+                   for p in 1:dim
+                       Out[i + dim * (j - 1), k + dim * (l - 1)] += Matrix1[i,p] * Matrix2[p + dim * (j - 1),k + dim * (l - 1)]
+                   end
+               end
+           end
+       end
+   end
+   return SMatrix{dim*dim, dim*dim}(Out)
 end
 
 
