@@ -21,7 +21,7 @@ function get_parameters(pot, sw, St, Sl, csv_funct)
     meshfile = "TubeBeam_V2_SecT_4-SecL_4.msh"
 
     # problemName = "TB"*"$(St)ST"*"$(Sl)SL"*"-O2-/$diffstrat/Elastomer-X_Yeoh/"*problemName
-    problemName = "TB"*"$(St)ST"*"$(Sl)SL"*"-O2-grav/$diffstrat/VHB4910_Yeoh/"*problemName
+    problemName = "TB"*"$(St)ST"*"$(Sl)SL"*"-O2-Nograv/$diffstrat/VHB4910_Yeoh/"*problemName
 
 
     # modmec = MoneyRivlin3D(λ=10.0, μ1=1.0, μ2=0.0)
@@ -71,7 +71,8 @@ function get_parameters(pot, sw, St, Sl, csv_funct)
     dirichletbc = MultiFieldBoundaryCondition([Du, Dφ])
 
     # Body force
-    f₀=VectorValue(9.81*960.0,0.0,0.0)
+    # f₀=VectorValue(9.81*960.0,0.0,0.0)
+    f₀=VectorValue(0.0,0.0,0.0)
 
     # FE parameters
     order = 2
@@ -82,13 +83,13 @@ function get_parameters(pot, sw, St, Sl, csv_funct)
     nr_ftol = 1e-12
 
     # Incremental solver
-    nsteps = 5
+    nsteps = 25
     nbisec = 10
 
     solveropt = @dict nr_show_trace nr_iter nr_ftol nsteps nbisec
 
     # Postprocessing
-    is_vtk = false
+    is_vtk = true
     is_P_F = true
 
     init_sol_bool, U_ap, X_ap = false, nothing, nothing
@@ -177,7 +178,7 @@ function run_(start, finish)
     t0 = time()
     for i in Int(start):Int(finish)
         t0_ = time()
-        conf = [1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0] # [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] # [1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0] #[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1] # conf_list[:,i]
+        conf = [1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1] # [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] # [1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0] #[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1] # conf_list[:,i]
         println(" ")
         println("!!!!!!!!    Configuration number $i / $(Int(finish))  (total = $n)   !!!!!!!")
         println("!!!!!!!!        Configuration $conf        !!!!!!!")
